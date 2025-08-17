@@ -3,6 +3,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.swing.*;
 
@@ -142,7 +143,7 @@ public class AppFrame extends JFrame implements ActionListener {
     private JPanel createInputPanel() {
         JPanel panel = new JPanel();
         panel.setLayout(new GridBagLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Route Selection"));
+        panel.setBorder(BorderFactory.createTitledBorder("Advanced Route Selection"));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
@@ -152,6 +153,8 @@ public class AppFrame extends JFrame implements ActionListener {
                              "UGCS", "Business School", "Volta Hall", "Commonwealth", "Great Hall", 
                              "Akuafo Hall", "Legon Hall", "Bush Canteen", "Sarbah Park", "Fire Station", 
                              "Banking Square", "Night Market", "Basic School", "Diaspora Halls"};
+        
+        String[] accessibilityTypes = {"Standard", "Wheelchair", "Elderly", "Visually Impaired", "Mobility Impaired"};
 
         startLabel = new JLabel("Starting Location:");
         startLabel.setFont(new Font("Arial", Font.BOLD, 14));
@@ -163,20 +166,30 @@ public class AppFrame extends JFrame implements ActionListener {
         endComboBox = new JComboBox<>(locations);
         endComboBox.setPreferredSize(new Dimension(250, 30));
 
+        JLabel accessibilityLabel = new JLabel("Accessibility Type:");
+        accessibilityLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        JComboBox<String> accessibilityComboBox = new JComboBox<>(accessibilityTypes);
+        accessibilityComboBox.setPreferredSize(new Dimension(200, 30));
+
+        JLabel timeLabel = new JLabel("Departure Time:");
+        timeLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        JComboBox<String> timeComboBox = new JComboBox<>(new String[]{"Current Time", "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM", "6:00 PM"});
+        timeComboBox.setPreferredSize(new Dimension(150, 30));
+
         findRouteButton = new JButton("Find Optimal Route");
         findRouteButton.setFont(new Font("Arial", Font.BOLD, 14));
         findRouteButton.setBackground(new Color(34, 139, 34));
         findRouteButton.setForeground(Color.WHITE);
         findRouteButton.setBorder(BorderFactory.createRaisedBevelBorder());
-        findRouteButton.setPreferredSize(new Dimension(150, 35));
+        findRouteButton.setPreferredSize(new Dimension(180, 35));
         findRouteButton.setFocusPainted(false);
 
-        clearButton = new JButton("Clear Results");
+        clearButton = new JButton("🗑️Clear Results");
         clearButton.setFont(new Font("Arial", Font.BOLD, 14));
         clearButton.setBackground(new Color(139, 0, 0));
         clearButton.setForeground(Color.WHITE);
         clearButton.setBorder(BorderFactory.createRaisedBevelBorder());
-        clearButton.setPreferredSize(new Dimension(120, 35));
+        clearButton.setPreferredSize(new Dimension(140, 35));
         clearButton.setFocusPainted(false);
 
         gbc.gridx = 0; gbc.gridy = 0; gbc.anchor = GridBagConstraints.WEST;
@@ -191,11 +204,23 @@ public class AppFrame extends JFrame implements ActionListener {
         gbc.gridx = 1; gbc.gridy = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(endComboBox, gbc);
 
+        gbc.gridx = 0; gbc.gridy = 2; gbc.anchor = GridBagConstraints.WEST;
+        panel.add(accessibilityLabel, gbc);
+
+        gbc.gridx = 1; gbc.gridy = 2; gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(accessibilityComboBox, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 3; gbc.anchor = GridBagConstraints.WEST;
+        panel.add(timeLabel, gbc);
+
+        gbc.gridx = 1; gbc.gridy = 3; gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(timeComboBox, gbc);
+
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
         buttonPanel.add(findRouteButton);
         buttonPanel.add(clearButton);
 
-        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2; gbc.fill = GridBagConstraints.NONE;
+        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2; gbc.fill = GridBagConstraints.NONE;
         panel.add(buttonPanel, gbc);
 
         findRouteButton.addActionListener(this);
@@ -240,13 +265,13 @@ public class AppFrame extends JFrame implements ActionListener {
 
             if (startLocation.equals("Select a location") || endLocation.equals("Select a location")) {
                 JOptionPane.showMessageDialog(frame, "Please select both starting and destination locations.", 
-                                            "Selection Required", JOptionPane.WARNING_MESSAGE);
+                 "Selection Required", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
             if (startLocation.equals(endLocation)) {
                 JOptionPane.showMessageDialog(frame, "Starting and destination locations must be different.", 
-                                            "Invalid Selection", JOptionPane.WARNING_MESSAGE);
+                     "Invalid Selection", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
@@ -255,7 +280,7 @@ public class AppFrame extends JFrame implements ActionListener {
 
             if (startNode == null || endNode == null) {
                 JOptionPane.showMessageDialog(frame, "Invalid location selected.", 
-                                            "Error", JOptionPane.ERROR_MESSAGE);
+                    "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
@@ -264,30 +289,47 @@ public class AppFrame extends JFrame implements ActionListener {
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(frame, "An error occurred while finding the route: " + ex.getMessage(), 
-                                        "Error", JOptionPane.ERROR_MESSAGE);
+                "Error", JOptionPane.ERROR_MESSAGE);
             ex.printStackTrace();
         }
     }
 
     private void displayResults(RouteOptimizer.RouteAnalysis analysis, String startLocation, String endLocation) {
         StringBuilder result = new StringBuilder();
-        result.append("=== UG CAMPUS ROUTE ANALYSIS ===\n");
-        result.append("From: ").append(startLocation).append("\n");
-        result.append("To: ").append(endLocation).append("\n\n");
+        result.append("🎓 UG CAMPUS ADVANCED ROUTE ANALYSIS 🎓\n");
+        result.append(" From: ").append(startLocation).append("\n");
+        result.append(" To: ").append(endLocation).append("\n");
+        result.append(" Analysis Time: ").append(java.time.LocalTime.now().toString()).append("\n\n");
 
         if (analysis.optimalRoute != null) {
-            result.append("🎯 OPTIMAL ROUTE:\n");
+            result.append(" OPTIMAL ROUTE:\n");
             result.append("Algorithm: ").append(analysis.optimalRoute.algorithm).append("\n");
             result.append("Path: ").append(String.join(" → ", analysis.optimalRoute.path)).append("\n");
             result.append("Distance: ").append(String.format("%.2f", analysis.optimalRoute.distance)).append(" meters\n");
-            result.append("Estimated Time: ").append(String.format("%.1f", analysis.optimalRoute.time)).append(" seconds\n");
-            result.append("Estimated Time: ").append(String.format("%.1f", analysis.optimalRoute.time / 60)).append(" minutes\n\n");
+            result.append("Base Time: ").append(String.format("%.1f", analysis.optimalRoute.time)).append(" seconds\n");
+            result.append("Base Time: ").append(String.format("%.1f", analysis.optimalRoute.time / 60)).append(" minutes\n\n");
+            
+            TrafficSimulator.TimeBasedRoute trafficRoute = TrafficSimulator.optimizeForTime(
+                analysis.optimalRoute.path, analysis.optimalRoute.distance, analysis.optimalRoute.time, 
+                java.time.LocalTime.now());
+            result.append(" TRAFFIC-ADJUSTED TIME: ").append(String.format("%.1f", trafficRoute.trafficAdjustedTime)).append(" seconds\n");
+            result.append(" RECOMMENDATION: ").append(trafficRoute.recommendedTime).append("\n\n");
+            
+            WeatherIntegration.WeatherAdjustedRoute weatherRoute = WeatherIntegration.adjustRouteForWeather(
+                analysis.optimalRoute.path, analysis.optimalRoute.distance, analysis.optimalRoute.time);
+            result.append(" WEATHER-ADJUSTED TIME: ").append(String.format("%.1f", weatherRoute.weatherAdjustedTime)).append(" seconds\n");
+            result.append(" WEATHER IMPACT: ").append(weatherRoute.weatherImpact).append("\n\n");
+            
+            AccessibilityFeatures.AccessibilityRoute accessibleRoute = AccessibilityFeatures.createAccessibleRoute(
+                analysis.optimalRoute.path, analysis.optimalRoute.distance, analysis.optimalRoute.time, "standard");
+            result.append(" ACCESSIBILITY-ADJUSTED TIME: ").append(String.format("%.1f", accessibleRoute.time)).append(" seconds\n");
+            result.append(" ACCESSIBILITY SCORE: ").append(String.format("%.2f", accessibleRoute.accessibilityScore)).append("\n\n");
         } else {
             result.append("❌ No route found between the selected locations.\n\n");
         }
 
         if (!analysis.routes.isEmpty()) {
-            result.append("🔄 ALTERNATIVE ROUTES:\n");
+            result.append(" ALTERNATIVE ROUTES:\n");
             for (int i = 0; i < Math.min(3, analysis.routes.size()); i++) {
                 SortingAlgorithms.Route route = analysis.routes.get(i);
                 result.append(i + 1).append(". ").append(route.algorithm).append(":\n");
@@ -298,25 +340,62 @@ public class AppFrame extends JFrame implements ActionListener {
         }
 
         if (!analysis.algorithmPerformance.isEmpty()) {
-            result.append("⚡ ALGORITHM PERFORMANCE:\n");
+            result.append("⚡ ALGORITHM PERFORMANCE ANALYSIS:\n");
             for (Map.Entry<String, Double> entry : analysis.algorithmPerformance.entrySet()) {
-                result.append(entry.getKey()).append(": ").append(entry.getValue()).append("ms\n");
+                result.append("• ").append(entry.getKey()).append(": ").append(entry.getValue()).append("ms\n");
             }
             result.append("\n");
         }
 
-        if (analysis.trafficFactor != 1.0) {
-            result.append("🚦 TRAFFIC FACTOR: ").append(analysis.trafficFactor).append("x\n\n");
+        if (analysis.optimalRoute != null) {
+            result.append(" WEATHER ANALYSIS:\n");
+            result.append(WeatherIntegration.generateWeatherReport(analysis.optimalRoute.path));
+            
+            result.append("♿ ACCESSIBILITY FEATURES:\n");
+            AccessibilityFeatures.AccessibilityRoute accessibleRoute = AccessibilityFeatures.createAccessibleRoute(
+                analysis.optimalRoute.path, analysis.optimalRoute.distance, analysis.optimalRoute.time, "standard");
+            for (String feature : accessibleRoute.features) {
+                result.append("• ").append(feature).append("\n");
+            }
+            result.append("\n");
+            
+            result.append("🚦 TRAFFIC ANALYSIS:\n");
+            result.append(TrafficSimulator.generateTrafficReport(analysis.optimalRoute.path, java.time.LocalTime.now()));
         }
 
-        result.append("📍 CAMPUS LANDMARKS NEARBY:\n");
+        result.append(" CAMPUS LANDMARKS & FACILITIES:\n");
         if (analysis.optimalRoute != null) {
             for (String location : analysis.optimalRoute.path) {
-                if (location.contains("Library") || location.contains("Canteen") || 
-                    location.contains("Park") || location.contains("Bank") || 
-                    location.contains("Market") || location.contains("Station")) {
-                    result.append("• ").append(location).append("\n");
+                if (location.contains("Library")) {
+                    result.append(" ").append(location).append(" (Study Area)\n");
+                } else if (location.contains("Canteen")) {
+                    result.append(" ").append(location).append(" (Food & Refreshments)\n");
+                } else if (location.contains("Park")) {
+                    result.append(" ").append(location).append(" (Recreation Area)\n");
+                } else if (location.contains("Bank")) {
+                    result.append(" ").append(location).append(" (Financial Services)\n");
+                } else if (location.contains("Market")) {
+                    result.append(" ").append(location).append(" (Shopping Area)\n");
+                } else if (location.contains("Station")) {
+                    result.append(" ").append(location).append(" (Emergency Services)\n");
+                } else if (location.contains("Hall")) {
+                    result.append(" ").append(location).append(" (Student Accommodation)\n");
+                } else if (location.contains("School") || location.contains("Department")) {
+                    result.append(" ").append(location).append(" (Academic Building)\n");
                 }
+            }
+        }
+
+        result.append("\n SMART RECOMMENDATIONS:\n");
+        if (analysis.optimalRoute != null) {
+            List<String> weatherRecs = WeatherIntegration.getWeatherRecommendations(analysis.optimalRoute.path);
+            List<String> accessibilityRecs = AccessibilityFeatures.getAccessibilityRecommendations(analysis.optimalRoute.path, "standard");
+            
+            for (String rec : weatherRecs) {
+                result.append("• ").append(rec).append("\n");
+            }
+            for (String rec : accessibilityRecs) {
+                result.append("• ").append(rec).append("\n");
             }
         }
 

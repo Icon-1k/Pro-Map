@@ -54,7 +54,6 @@ public class Graph {
 
     }
 
-    //check if nodes have an edge between them
     public boolean hasEdge(Nodes source, Nodes destination) {
         LinkedList<Edge> edges = source.edges;
         for (Edge edge : edges) {
@@ -66,7 +65,6 @@ public class Graph {
 
     }
 
-    //reset the nodes to their original state
     public void resetNodesVisited() {
         for (Nodes node : nodes) {
             node.unvisit();
