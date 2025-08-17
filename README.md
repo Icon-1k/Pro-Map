@@ -33,7 +33,7 @@ The system includes 24 key campus locations:
 - Business School
 
 ### Administrative
-- JQB (Junior Common Room)
+- JQB 
 - Main Gate
 - UGCS (University of Ghana Computing Services)
 
