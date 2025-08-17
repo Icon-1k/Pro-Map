@@ -184,7 +184,7 @@ public class AppFrame extends JFrame implements ActionListener {
         findRouteButton.setPreferredSize(new Dimension(180, 35));
         findRouteButton.setFocusPainted(false);
 
-        clearButton = new JButton("🗑️Clear Results");
+        clearButton = new JButton("Clear Results");
         clearButton.setFont(new Font("Arial", Font.BOLD, 14));
         clearButton.setBackground(new Color(139, 0, 0));
         clearButton.setForeground(Color.WHITE);
@@ -296,10 +296,10 @@ public class AppFrame extends JFrame implements ActionListener {
 
     private void displayResults(RouteOptimizer.RouteAnalysis analysis, String startLocation, String endLocation) {
         StringBuilder result = new StringBuilder();
-        result.append("🎓 UG CAMPUS ADVANCED ROUTE ANALYSIS 🎓\n");
-        result.append(" From: ").append(startLocation).append("\n");
-        result.append(" To: ").append(endLocation).append("\n");
-        result.append(" Analysis Time: ").append(java.time.LocalTime.now().toString()).append("\n\n");
+        result.append("UG CAMPUS ADVANCED ROUTE ANALYSIS\n");
+        result.append("From: ").append(startLocation).append("\n");
+        result.append("To: ").append(endLocation).append("\n");
+        result.append("Analysis Time: ").append(java.time.LocalTime.now().toString()).append("\n\n");
 
         if (analysis.optimalRoute != null) {
             result.append(" OPTIMAL ROUTE:\n");
