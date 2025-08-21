@@ -6,11 +6,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
 
 public class AppFrame extends JFrame implements ActionListener {
     private JLabel startLabel;
     private JLabel stopLabel;
-    private JLabel routeLabel;
     private JButton findRouteButton;
     private JButton clearButton;
     private JFrame frame;
@@ -121,20 +121,52 @@ public class AppFrame extends JFrame implements ActionListener {
     }
 
     private void setupUI() {
-        frame = new JFrame("UG Navigate - Campus Route Finder");
+        frame = new JFrame("Pro Map");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(800, 600);
+        frame.setSize(1024, 768);
         frame.setLocationRelativeTo(null);
+        frame.setBackground(new Color(245, 245, 245));
 
         mainPanel = new JPanel();
-        mainPanel.setLayout(new BorderLayout(10, 10));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        mainPanel.setLayout(new BorderLayout(15, 15));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
+        mainPanel.setBackground(new Color(245, 245, 245));
+
+        // Create header panel with logo and title
+        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        headerPanel.setBackground(new Color(0, 106, 77)); // UG Green
+        JLabel titleLabel = new JLabel("Pro Map");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        titleLabel.setForeground(Color.WHITE);
+        headerPanel.add(titleLabel);
 
         JPanel inputPanel = createInputPanel();
         resultPanel = createResultPanel();
 
-        mainPanel.add(inputPanel, BorderLayout.NORTH);
-        mainPanel.add(resultPanel, BorderLayout.CENTER);
+        // Wrap components in a content panel
+        JPanel contentPanel = new JPanel(new GridLayout(1, 2, 15, 0));
+        contentPanel.setBackground(new Color(245, 245, 245));
+        
+        // Left panel container
+        JPanel leftPanel = new JPanel(new BorderLayout());
+        leftPanel.add(inputPanel, BorderLayout.NORTH);
+        contentPanel.add(leftPanel);
+        
+        // Right panel container
+        JPanel rightPanel = new JPanel(new BorderLayout());
+        rightPanel.add(resultPanel, BorderLayout.NORTH);
+        contentPanel.add(rightPanel);
+
+        mainPanel.add(headerPanel, BorderLayout.NORTH);
+        mainPanel.add(contentPanel, BorderLayout.CENTER);
+
+        // Add a status bar
+        JPanel statusBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        statusBar.setBackground(new Color(0, 106, 77));
+        JLabel statusLabel = new JLabel("Ready to find your route");
+        statusLabel.setForeground(Color.WHITE);
+        statusBar.add(statusLabel);
+        mainPanel.add(statusBar, BorderLayout.SOUTH);
 
         frame.add(mainPanel);
         frame.setVisible(true);
@@ -143,7 +175,9 @@ public class AppFrame extends JFrame implements ActionListener {
     private JPanel createInputPanel() {
         JPanel panel = new JPanel();
         panel.setLayout(new GridBagLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Advanced Route Selection"));
+        TitledBorder titledBorder = BorderFactory.createTitledBorder("Routing System");
+        titledBorder.setTitleJustification(TitledBorder.LEFT);
+        panel.setBorder(titledBorder);
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
@@ -177,19 +211,27 @@ public class AppFrame extends JFrame implements ActionListener {
         timeComboBox.setPreferredSize(new Dimension(150, 30));
 
         findRouteButton = new JButton("Find Optimal Route");
-        findRouteButton.setFont(new Font("Arial", Font.BOLD, 14));
-        findRouteButton.setBackground(new Color(34, 139, 34));
+        findRouteButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        findRouteButton.setBackground(new Color(0, 106, 77)); // UG Green
         findRouteButton.setForeground(Color.WHITE);
-        findRouteButton.setBorder(BorderFactory.createRaisedBevelBorder());
-        findRouteButton.setPreferredSize(new Dimension(180, 35));
+        findRouteButton.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(0, 86, 57), 1),
+            BorderFactory.createEmptyBorder(8, 15, 8, 15)
+        ));
+        findRouteButton.setPreferredSize(new Dimension(200, 40));
+        findRouteButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         findRouteButton.setFocusPainted(false);
 
-        clearButton = new JButton("Clear Results");
-        clearButton.setFont(new Font("Arial", Font.BOLD, 14));
-        clearButton.setBackground(new Color(139, 0, 0));
-        clearButton.setForeground(Color.WHITE);
-        clearButton.setBorder(BorderFactory.createRaisedBevelBorder());
-        clearButton.setPreferredSize(new Dimension(140, 35));
+        clearButton = new JButton("Clear");
+        clearButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        clearButton.setBackground(new Color(240, 240, 240));
+        clearButton.setForeground(new Color(60, 60, 60));
+        clearButton.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+            BorderFactory.createEmptyBorder(8, 15, 8, 15)
+        ));
+        clearButton.setPreferredSize(new Dimension(120, 40));
+        clearButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         clearButton.setFocusPainted(false);
 
         gbc.gridx = 0; gbc.gridy = 0; gbc.anchor = GridBagConstraints.WEST;
@@ -232,17 +274,36 @@ public class AppFrame extends JFrame implements ActionListener {
     }
 
     private JPanel createResultPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Route Analysis Results"));
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(0, 106, 77), 2),
+                "Route Output",
+                TitledBorder.RIGHT,
+                TitledBorder.TOP,
+                new Font("Segoe UI", Font.BOLD, 16),
+                new Color(0, 106, 77)
+            ),
+            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
 
         resultArea = new JTextArea();
         resultArea.setEditable(false);
-        resultArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        resultArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         resultArea.setLineWrap(true);
         resultArea.setWrapStyleWord(true);
+        resultArea.setMargin(new Insets(10, 10, 10, 10));
+        resultArea.setBackground(new Color(252, 252, 252));
+        resultArea.setForeground(new Color(33, 33, 33));
 
         scrollPane = new JScrollPane(resultArea);
-        scrollPane.setPreferredSize(new Dimension(700, 400));
+        scrollPane.setPreferredSize(new Dimension(800, 500));
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
+        
+        // Customize scrollbar colors
+        scrollPane.getVerticalScrollBar().setBackground(new Color(245, 245, 245));
+        scrollPane.getVerticalScrollBar().setForeground(new Color(180, 180, 180));
 
         panel.add(scrollPane, BorderLayout.CENTER);
 
@@ -296,18 +357,30 @@ public class AppFrame extends JFrame implements ActionListener {
 
     private void displayResults(RouteOptimizer.RouteAnalysis analysis, String startLocation, String endLocation) {
         StringBuilder result = new StringBuilder();
-        result.append("UG CAMPUS ADVANCED ROUTE ANALYSIS\n");
+        result.append("PRO MAP ADVANCED ROUTE ANALYSIS\n");
+        result.append("=================================\n");
         result.append("From: ").append(startLocation).append("\n");
         result.append("To: ").append(endLocation).append("\n");
         result.append("Analysis Time: ").append(java.time.LocalTime.now().toString()).append("\n\n");
 
+        // Display all available routes with their metrics
+        result.append("ALGORITHM COMPARISON:\n");
+        result.append("===================\n");
+        for (SortingAlgorithms.Route route : analysis.routes) {
+            result.append("\n⭐ ").append(route.algorithm).append(" Algorithm:\n");
+            result.append("   Path: ").append(String.join(" → ", route.path)).append("\n");
+            result.append("   Distance: ").append(String.format("%.2f", route.distance)).append(" meters\n");
+            result.append("   Travel Time: ").append(String.format("%.1f", route.time)).append(" minutes\n");
+            result.append("   Computation Time: ").append(String.format("%.3f", analysis.algorithmPerformance.get(route.algorithm))).append(" ms\n");
+        }
+
+        result.append("\nOPTIMAL ROUTE RECOMMENDATION:\n");
+        result.append("===========================\n");
         if (analysis.optimalRoute != null) {
-            result.append(" OPTIMAL ROUTE:\n");
-            result.append("Algorithm: ").append(analysis.optimalRoute.algorithm).append("\n");
-            result.append("Path: ").append(String.join(" → ", analysis.optimalRoute.path)).append("\n");
-            result.append("Distance: ").append(String.format("%.2f", analysis.optimalRoute.distance)).append(" meters\n");
-            result.append("Base Time: ").append(String.format("%.1f", analysis.optimalRoute.time)).append(" seconds\n");
-            result.append("Base Time: ").append(String.format("%.1f", analysis.optimalRoute.time / 60)).append(" minutes\n\n");
+            result.append("Selected Algorithm: ").append(analysis.optimalRoute.algorithm).append("\n");
+            result.append("Optimal Path: ").append(String.join(" → ", analysis.optimalRoute.path)).append("\n");
+            result.append("Total Distance: ").append(String.format("%.2f", analysis.optimalRoute.distance)).append(" meters\n");
+            result.append("Base Travel Time: ").append(String.format("%.1f", analysis.optimalRoute.time)).append(" minutes\n\n");
             
             TrafficSimulator.TimeBasedRoute trafficRoute = TrafficSimulator.optimizeForTime(
                 analysis.optimalRoute.path, analysis.optimalRoute.distance, analysis.optimalRoute.time, 

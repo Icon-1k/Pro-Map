@@ -127,7 +127,7 @@ public class RouteOptimizer {
     
     public static String generateRouteReport(RouteAnalysis analysis) {
         StringBuilder report = new StringBuilder();
-        report.append("=== UG Campus Route Analysis ===\n\n");
+        report.append("=== Pro Map Route Analysis ===\n\n");
         
         if (analysis.optimalRoute != null) {
             report.append("Optimal Route: ").append(analysis.optimalRoute.toString()).append("\n");

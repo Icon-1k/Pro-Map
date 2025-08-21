@@ -1,93 +1,217 @@
 import java.util.*;
 
-public class CriticalPath {
+public class CriticalPath{
+    static class Task {
+        String name;
+        double duration;
+        List<Task> dependencies;
+        List<Task> dependents;
+        double earliestStart;
+        double earliestFinish;
+        double latestStart;
+        double latestFinish;
+        double slack;
+        boolean isCritical;
 
-    public static void main(String[] args) {
-
-        HashSet<Task> allTasks = new HashSet<Task>();
-        Task end = new Task("End", 0);
-        Task F = new Task("F", 2, end);
-        Task A = new Task("A", 3, end);
-        Task X = new Task("X", 4, F, A);
-        Task Q = new Task("Q", 2, A, X);
-        Task start = new Task("Start", 0, Q);
-        allTasks.add(end);
-        allTasks.add(F);
-        allTasks.add(A);
-        allTasks.add(X);
-        allTasks.add(Q);
-        allTasks.add(start);
-        System.out.println("Critical Path: "+Arrays.toString(criticalPath(allTasks)));
-    }
-
-    public static class Task{
-        public int cost;
-        public int criticalCost;
-        public String name;
-        public HashSet<Task> dependencies = new HashSet<Task>();
-        public Task(String name, int cost, Task... dependencies) {
+        public Task(String name, double duration) {
             this.name = name;
-            this.cost = cost;
-            for(Task t : dependencies){
-                this.dependencies.add(t);
-            }
+            this.duration = duration;
+            this.dependencies = new ArrayList<>();
+            this.dependents = new ArrayList<>();
+            this.earliestStart = 0;
+            this.earliestFinish = 0;
+            this.latestStart = Double.MAX_VALUE;
+            this.latestFinish = Double.MAX_VALUE;
+            this.slack = 0;
+            this.isCritical = false;
         }
-        @Override
-        public String toString() {
-            return name+": "+criticalCost;
-        }
-        public boolean isDependent(Task t){
-            if(dependencies.contains(t)){
-                return true;
-            }
-            for(Task dep : dependencies){
-                if(dep.isDependent(t)){
-                    return true;
-                }
-            }
-            return false;
+
+        public void addDependency(Task task) {
+            dependencies.add(task);
+            task.dependents.add(this);
         }
     }
 
-    public static Task[] criticalPath(Set<Task> tasks){
-        HashSet<Task> completed = new HashSet<Task>();
-        HashSet<Task> remaining = new HashSet<Task>(tasks);
-
-        while(!remaining.isEmpty()){
-            boolean progress = false;
-
-            for(Iterator<Task> it = remaining.iterator();it.hasNext();){
-                Task task = it.next();
-                if(completed.containsAll(task.dependencies)){
-                    int critical = 0;
-                    for(Task t : task.dependencies){
-                        if(t.criticalCost > critical){
-                            critical = t.criticalCost;
-                        }
-                    }
-                    task.criticalCost = critical+task.cost;
-                    completed.add(task);
-                    it.remove();
-                    progress = true;
-                }
-            }
-            if(!progress) throw new RuntimeException("Cyclic dependency, algorithm stopped!");
+    public static List<Task> analyze(Graph graph, List<Nodes> waypoints) {
+        // Convert graph nodes to tasks
+        List<Task> tasks = createTasks(graph, waypoints);
+        
+        if (tasks.isEmpty()) {
+            return tasks;
         }
 
-        Task[] ret = completed.toArray(new Task[0]);
-        Arrays.sort(ret, new Comparator<Task>() {
+        // Forward pass - Calculate earliest start/finish times
+        forwardPass(tasks.get(0));
+        
+        // Backward pass - Calculate latest start/finish times
+        backwardPass(tasks.get(tasks.size() - 1));
+        
+        // Calculate slack and identify critical path
+        calculateSlackAndCriticalPath(tasks);
+        
+        return tasks;
+    }
 
-            @Override
-            public int compare(Task o1, Task o2) {
-                int i= o2.criticalCost-o1.criticalCost;
-                if(i != 0)return i;
-
-                if(o1.isDependent(o2))return -1;
-                if(o2.isDependent(o1))return 1;
-                return 0;
+    private static List<Task> createTasks(Graph graph, List<Nodes> waypoints) {
+        Map<String, Task> taskMap = new HashMap<>();
+        List<Task> tasks = new ArrayList<>();
+        
+        if (waypoints == null || waypoints.isEmpty()) {
+            return tasks;
+        }
+        
+        // Create tasks for each waypoint
+        for (Nodes node : waypoints) {
+            Task task = new Task(node.name, 0);
+            taskMap.put(node.name, task);
+            tasks.add(task);
+        }
+        
+        // Set up dependencies and durations
+        for (int i = 0; i < waypoints.size() - 1; i++) {
+            Nodes current = waypoints.get(i);
+            Nodes next = waypoints.get(i + 1);
+            Task currentTask = taskMap.get(current.name);
+            Task nextTask = taskMap.get(next.name);
+            
+            // Find edge between current and next nodes
+            Edge edge = findEdge(current, next);
+            if (edge != null) {
+                currentTask.duration = edge.weight;
+                nextTask.addDependency(currentTask);
             }
-        });
+        }
+        
+        return tasks;
+    }
 
-        return ret;
+    private static Edge findEdge(Nodes source, Nodes destination) {
+        if (source == null || destination == null || source.edges == null) {
+            return null;
+        }
+        
+        for (Edge edge : source.edges) {
+            if (edge.destination == destination) {
+                return edge;
+            }
+        }
+        return null;
+    }
+
+    private static void forwardPass(Task startTask) {
+        if (startTask == null) return;
+        
+        startTask.earliestStart = 0;
+        Queue<Task> queue = new LinkedList<>();
+        queue.offer(startTask);
+        Set<Task> visited = new HashSet<>();
+        
+        while (!queue.isEmpty()) {
+            Task task = queue.poll();
+            if (visited.contains(task)) continue;
+            visited.add(task);
+            
+            // Calculate earliest finish time
+            task.earliestFinish = task.earliestStart + task.duration;
+            
+            // Update dependent tasks
+            for (Task dependent : task.dependents) {
+                dependent.earliestStart = Math.max(
+                    dependent.earliestStart,
+                    task.earliestFinish
+                );
+                queue.offer(dependent);
+            }
+        }
+    }
+
+    private static void backwardPass(Task endTask) {
+        if (endTask == null) return;
+        
+        endTask.latestFinish = endTask.earliestFinish;
+        Queue<Task> queue = new LinkedList<>();
+        queue.offer(endTask);
+        Set<Task> visited = new HashSet<>();
+        
+        while (!queue.isEmpty()) {
+            Task task = queue.poll();
+            if (visited.contains(task)) continue;
+            visited.add(task);
+            
+            task.latestStart = task.latestFinish - task.duration;
+            
+            // Update dependencies
+            for (Task dependency : task.dependencies) {
+                dependency.latestFinish = Math.min(
+                    dependency.latestFinish,
+                    task.latestStart
+                );
+                queue.offer(dependency);
+            }
+        }
+    }
+
+    private static void calculateSlackAndCriticalPath(List<Task> tasks) {
+        if (tasks == null || tasks.isEmpty()) return;
+        
+        double minSlack = Double.MAX_VALUE;
+        
+        // Calculate slack for all tasks
+        for (Task task : tasks) {
+            task.slack = task.latestStart - task.earliestStart;
+            minSlack = Math.min(minSlack, task.slack);
+        }
+        
+        // Mark critical path (tasks with minimum slack)
+        for (Task task : tasks) {
+            task.isCritical = (Math.abs(task.slack - minSlack) < 0.0001);
+        }
+    }
+
+    public static String formatResults(List<Task> tasks) {
+        if (tasks == null || tasks.isEmpty()) {
+            return "No tasks to analyze.";
+        }
+        
+        StringBuilder result = new StringBuilder();
+        result.append("Critical Path Analysis:\n\n");
+        
+        // Table header
+        result.append(String.format("%-20s %-10s %-10s %-10s %-10s %-10s %-10s %s\n",
+            "Task", "Duration", "E.Start", "E.Finish", "L.Start", "L.Finish", "Slack", "Critical"));
+        result.append("-".repeat(100)).append("\n");
+        
+        // Task details
+        for (Task task : tasks) {
+            result.append(String.format("%-20s %-10.2f %-10.2f %-10.2f %-10.2f %-10.2f %-10.2f %s\n",
+                task.name,
+                task.duration,
+                task.earliestStart,
+                task.earliestFinish,
+                task.latestStart,
+                task.latestFinish,
+                task.slack,
+                task.isCritical ? "Yes" : "No"));
+        }
+        
+        // Critical path
+        result.append("\nCritical Path: ");
+        boolean first = true;
+        for (Task task : tasks) {
+            if (task.isCritical) {
+                if (!first) result.append(" → ");
+                result.append(task.name);
+                first = false;
+            }
+        }
+        
+        // Project duration
+        double projectDuration = tasks.stream()
+            .mapToDouble(t -> t.earliestFinish)
+            .max()
+            .orElse(0.0);
+        result.append(String.format("\n\nTotal Route Duration: %.2f minutes", projectDuration));
+        
+        return result.toString();
     }
 }

@@ -1,219 +1,188 @@
 import java.util.*;
 
 public class NorthwestCorner {
-    
-    public static class TransportationResult {
-        public int[][] allocation;
-        public int totalCost;
-        public boolean isOptimal;
-        
-        public TransportationResult(int[][] allocation, int totalCost, boolean isOptimal) {
+    public static class RouteSegment {
+        public String from;
+        public String to;
+        public double distance;
+        public double allocation;
+
+        public RouteSegment(String from, String to, double distance, double allocation) {
+            this.from = from;
+            this.to = to;
+            this.distance = distance;
             this.allocation = allocation;
-            this.totalCost = totalCost;
-            this.isOptimal = isOptimal;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("%s → %s (%.2f meters, %.2f flow)", from, to, distance, allocation);
         }
     }
-    
-    public static TransportationResult northwestCornerMethod(int[] supply, int[] demand, int[][] costs) {
-        int nRows = supply.length;
-        int nCols = demand.length;
+
+    public static class TransportationResult {
+        public List<RouteSegment> segments;
+        public double totalDistance;
+        public List<String> route;
+        public List<String> steps;
+
+        public TransportationResult() {
+            this.segments = new ArrayList<>();
+            this.totalDistance = 0;
+            this.route = new ArrayList<>();
+            this.steps = new ArrayList<>();
+        }
+    }
+
+    public static TransportationResult findInitialRoute(Graph graph, Nodes start, Nodes end) {
+        TransportationResult result = new TransportationResult();
+        Map<String, Double> supply = new HashMap<>();
+        Map<String, Double> demand = new HashMap<>();
+
+        // Initialize supply/demand for all nodes
+        initializeSupplyDemand(graph, start, end, supply, demand);
         
-        int[][] allocation = new int[nRows][nCols];
-        int[] remainingSupply = supply.clone();
-        int[] remainingDemand = demand.clone();
+        // Create mapping of distances between nodes
+        Map<String, Map<String, Double>> distances = createDistanceMap(graph);
         
-        int totalCost = 0;
+        // Apply Northwest Corner Method
+        applyNWCM(supply, demand, distances, result);
         
-        for (int i = 0; i < nRows; i++) {
-            for (int j = 0; j < nCols; j++) {
-                if (remainingSupply[i] > 0 && remainingDemand[j] > 0) {
-                    int quantity = Math.min(remainingSupply[i], remainingDemand[j]);
-                    allocation[i][j] = quantity;
-                    totalCost += quantity * costs[i][j];
-                    
-                    remainingSupply[i] -= quantity;
-                    remainingDemand[j] -= quantity;
-                }
+        return result;
+    }
+
+    private static void initializeSupplyDemand(Graph graph, Nodes start, Nodes end,
+            Map<String, Double> supply, Map<String, Double> demand) {
+        // Set initial supply at start node
+        supply.put(start.name, 1.0);
+        
+        // Set demand at end node
+        demand.put(end.name, 1.0);
+        
+        // Add intermediate nodes with balanced supply/demand
+        for (Nodes node : graph.getNodes()) {
+            if (!node.equals(start) && !node.equals(end)) {
+                supply.put(node.name, 0.5);
+                demand.put(node.name, 0.5);
+            }
+        }
+    }
+
+    private static Map<String, Map<String, Double>> createDistanceMap(Graph graph) {
+        Map<String, Map<String, Double>> distances = new HashMap<>();
+        
+        // Initialize distance map for all nodes
+        for (Nodes node : graph.getNodes()) {
+            distances.put(node.name, new HashMap<>());
+        }
+        
+        // Fill in distances from edges
+        for (Nodes from : graph.getNodes()) {
+            for (Edge edge : from.edges) {
+                distances.get(from.name).put(edge.destination.name, edge.weight);
             }
         }
         
-        boolean isOptimal = checkOptimality(allocation, costs, supply, demand);
-        
-        return new TransportationResult(allocation, totalCost, isOptimal);
+        return distances;
     }
-    
-    private static boolean checkOptimality(int[][] allocation, int[][] costs, int[] supply, int[] demand) {
-        int nRows = supply.length;
-        int nCols = demand.length;
-        
-        for (int i = 0; i < nRows; i++) {
-            for (int j = 0; j < nCols; j++) {
-                if (allocation[i][j] == 0) {
-                    int opportunityCost = calculateOpportunityCost(allocation, costs, i, j);
-                    if (opportunityCost < 0) {
-                        return false;
-                    }
+
+    private static void applyNWCM(Map<String, Double> supply, Map<String, Double> demand,
+            Map<String, Map<String, Double>> distances, TransportationResult result) {
+        // Get sorted lists of supply and demand points
+        List<String> supplyPoints = new ArrayList<>(supply.keySet());
+        List<String> demandPoints = new ArrayList<>(demand.keySet());
+
+        while (!supplyPoints.isEmpty() && !demandPoints.isEmpty()) {
+            String from = supplyPoints.get(0);
+            String to = demandPoints.get(0);
+            
+            double availableSupply = supply.get(from);
+            double requiredDemand = demand.get(to);
+            
+            // Get distance between points
+            Double distance = distances.get(from).getOrDefault(to, Double.MAX_VALUE);
+            
+            if (distance != Double.MAX_VALUE) {
+                // Calculate allocation
+                double allocation = Math.min(availableSupply, requiredDemand);
+                
+                // Record the route segment
+                RouteSegment segment = new RouteSegment(from, to, distance, allocation);
+                result.segments.add(segment);
+                result.totalDistance += distance * allocation;
+                
+                // Update supply and demand
+                supply.put(from, availableSupply - allocation);
+                demand.put(to, requiredDemand - allocation);
+                
+                // Record step
+                result.steps.add(String.format(
+                    "Allocated %.2f units from %s to %s (Distance: %.2f meters)",
+                    allocation, from, to, distance
+                ));
+                
+                // Remove points with zero supply/demand
+                if (supply.get(from) <= 0) {
+                    supplyPoints.remove(0);
                 }
-            }
-        }
-        return true;
-    }
-    
-    private static int calculateOpportunityCost(int[][] allocation, int[][] costs, int row, int col) {
-        int nRows = allocation.length;
-        int nCols = allocation[0].length;
-        
-        List<Integer> path = findClosedPath(allocation, row, col);
-        if (path.size() < 4) {
-            return 0;
-        }
-        
-        int cost = 0;
-        for (int i = 0; i < path.size(); i += 2) {
-            int r = path.get(i);
-            int c = path.get(i + 1);
-            cost += (i % 4 == 0) ? costs[r][c] : -costs[r][c];
-        }
-        
-        return cost;
-    }
-    
-    private static List<Integer> findClosedPath(int[][] allocation, int startRow, int startCol) {
-        List<Integer> path = new ArrayList<>();
-        int nRows = allocation.length;
-        int nCols = allocation[0].length;
-        
-        boolean[][] visited = new boolean[nRows][nCols];
-        findPathRecursive(allocation, startRow, startCol, startRow, startCol, path, visited, 0);
-        
-        return path;
-    }
-    
-    private static boolean findPathRecursive(int[][] allocation, int startRow, int startCol, 
-        int currentRow, int currentCol, List<Integer> path, 
-        boolean[][] visited, int depth) {
-        if (depth > 0 && currentRow == startRow && currentCol == startCol) {
-            return true;
-        }
-        
-        if (depth > 10) {
-            return false;
-        }
-        
-        int nRows = allocation.length;
-        int nCols = allocation[0].length;
-        
-        if (depth == 0) {
-            path.add(currentRow);
-            path.add(currentCol);
-        }
-        
-        visited[currentRow][currentCol] = true;
-        
-        for (int i = 0; i < nRows; i++) {
-            if (allocation[i][currentCol] > 0 && !visited[i][currentCol]) {
-                path.add(i);
-                path.add(currentCol);
-                if (findPathRecursive(allocation, startRow, startCol, i, currentCol, path, visited, depth + 1)) {
-                    return true;
+                if (demand.get(to) <= 0) {
+                    demandPoints.remove(0);
                 }
-                path.remove(path.size() - 1);
-                path.remove(path.size() - 1);
+            } else {
+                // If no direct connection, try next destination
+                demandPoints.remove(0);
             }
         }
         
-        for (int j = 0; j < nCols; j++) {
-            if (allocation[currentRow][j] > 0 && !visited[currentRow][j]) {
-                path.add(currentRow);
-                path.add(j);
-                if (findPathRecursive(allocation, startRow, startCol, currentRow, j, path, visited, depth + 1)) {
-                    return true;
-                }
-                path.remove(path.size() - 1);
-                path.remove(path.size() - 1);
-            }
-        }
-        
-        visited[currentRow][currentCol] = false;
-        return false;
+        // Build final route
+        buildRoute(result);
     }
     
-    public static void printAllocation(int[][] allocation, int[] supply, int[] demand, int[][] costs) {
-        System.out.println("Northwest Corner Method Allocation:");
-        
-        int nRows = allocation.length;
-        int nCols = allocation[0].length;
-        
-        System.out.print("      ");
-        for (int j = 0; j < nCols; j++) {
-            System.out.printf("D%d    ", j + 1);
+    private static void buildRoute(TransportationResult result) {
+        if (result.segments.isEmpty()) {
+            return;
         }
-        System.out.println("Supply");
         
-        for (int i = 0; i < nRows; i++) {
-            System.out.printf("S%d    ", i + 1);
-            for (int j = 0; j < nCols; j++) {
-                if (allocation[i][j] > 0) {
-                    System.out.printf("%d(%d) ", allocation[i][j], costs[i][j]);
-                } else {
-                    System.out.print("0     ");
-                }
+        // Start with the first segment
+        RouteSegment first = result.segments.get(0);
+        result.route.add(first.from);
+        result.route.add(first.to);
+        
+        // Add subsequent segments
+        for (int i = 1; i < result.segments.size(); i++) {
+            RouteSegment segment = result.segments.get(i);
+            if (!result.route.contains(segment.from)) {
+                result.route.add(segment.from);
             }
-            System.out.printf("%d\n", supply[i]);
-        }
-        
-        System.out.print("Demand ");
-        for (int j = 0; j < nCols; j++) {
-            System.out.printf("%d    ", demand[j]);
-        }
-        System.out.println();
-    }
-    
-    public static TransportationResult optimizeWithVogel(int[] supply, int[] demand, int[][] costs) {
-        TransportationResult nwResult = northwestCornerMethod(supply, demand, costs);
-        
-        if (nwResult.isOptimal) {
-            return nwResult;
-        }
-        
-        try {
-            VogelAlgo.main(new String[0]);
-        } catch (Exception e) {
-            System.err.println("Error running Vogel algorithm: " + e.getMessage());
-        }
-        
-        return new TransportationResult(nwResult.allocation, nwResult.totalCost, true);
-    }
-    
-    public static Map<String, Integer> analyzeTransportationCosts(int[][] allocation, int[][] costs) {
-        Map<String, Integer> analysis = new HashMap<>();
-        
-        int nRows = allocation.length;
-        int nCols = allocation[0].length;
-        
-        int totalAllocated = 0;
-        int totalCost = 0;
-        int maxCost = Integer.MIN_VALUE;
-        int minCost = Integer.MAX_VALUE;
-        
-        for (int i = 0; i < nRows; i++) {
-            for (int j = 0; j < nCols; j++) {
-                if (allocation[i][j] > 0) {
-                    totalAllocated += allocation[i][j];
-                    int cost = allocation[i][j] * costs[i][j];
-                    totalCost += cost;
-                    maxCost = Math.max(maxCost, costs[i][j]);
-                    minCost = Math.min(minCost, costs[i][j]);
-                }
+            if (!result.route.contains(segment.to)) {
+                result.route.add(segment.to);
             }
         }
-        
-        analysis.put("TotalAllocated", totalAllocated);
-        analysis.put("TotalCost", totalCost);
-        analysis.put("MaxCost", maxCost);
-        analysis.put("MinCost", minCost);
-        analysis.put("AverageCost", totalAllocated > 0 ? totalCost / totalAllocated : 0);
-        
-        return analysis;
     }
-} 
+
+    public static String formatResults(TransportationResult result) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Northwest Corner Method Analysis:\n\n");
+        
+        // Route segments
+        sb.append("Route Segments:\n");
+        for (RouteSegment segment : result.segments) {
+            sb.append("  ").append(segment).append("\n");
+        }
+        
+        // Complete route
+        sb.append("\nComplete Route: ");
+        sb.append(String.join(" → ", result.route));
+        
+        // Total distance
+        sb.append(String.format("\n\nTotal Distance: %.2f meters\n", result.totalDistance));
+        
+        // Steps taken
+        sb.append("\nAllocation Steps:\n");
+        for (String step : result.steps) {
+            sb.append("  ").append(step).append("\n");
+        }
+        
+        return sb.toString();
+    }
+}
